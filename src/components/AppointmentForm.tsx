@@ -44,6 +44,45 @@ const AppointmentForm = () => {
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
+  const formatEmailBody = (data: FormData): string => {
+    const formatDate = (date: Date | undefined) => {
+      return date ? date.toLocaleDateString() : 'Not specified';
+    };
+
+    let emailBody = `APPOINTMENT BOOKING REQUEST\n\n`;
+    
+    emailBody += `PERSONAL INFORMATION:\n`;
+    emailBody += `Full Name: ${data.fullName}\n`;
+    emailBody += `Date of Birth: ${formatDate(data.dateOfBirth)}\n`;
+    emailBody += `Gender: ${data.gender}\n`;
+    emailBody += `Phone Number: ${data.phoneNumber}\n`;
+    emailBody += `Email Address: ${data.emailAddress}\n\n`;
+    
+    emailBody += `APPOINTMENT DETAILS:\n`;
+    emailBody += `Service: ${data.service}\n`;
+    emailBody += `Preferred Date: ${formatDate(data.preferredDate)}\n`;
+    emailBody += `Preferred Time: ${data.preferredTime}\n`;
+    emailBody += `Preferred Doctor: ${data.preferredDoctor || 'No preference'}\n\n`;
+    
+    emailBody += `PATIENT INFORMATION:\n`;
+    emailBody += `Appointment for self: ${data.isForSelf ? 'Yes' : 'No'}\n`;
+    if (!data.isForSelf) {
+      emailBody += `Patient Name: ${data.patientName}\n`;
+      emailBody += `Patient Age: ${data.patientAge}\n`;
+      emailBody += `Relationship to Patient: ${data.relationshipToPatient}\n`;
+    }
+    emailBody += `\n`;
+    
+    emailBody += `ADDITIONAL INFORMATION:\n`;
+    emailBody += `Reason for Visit: ${data.reasonForVisit || 'Not specified'}\n`;
+    emailBody += `Has Referral: ${data.hasReferral ? 'Yes' : 'No'}\n`;
+    if (data.hasReferral && data.referralDocument) {
+      emailBody += `Referral Document: ${data.referralDocument.name}\n`;
+    }
+    
+    return emailBody;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -71,9 +110,20 @@ const AppointmentForm = () => {
 
     console.log("Form submitted with data:", formData);
     
+    // Create email with form data
+    const emailSubject = `Appointment Booking Request - ${formData.fullName}`;
+    const emailBody = formatEmailBody(formData);
+    const emailTo = 'appointments@premierfamilyclinics.co.ke';
+    
+    // Create mailto link
+    const mailtoLink = `mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    
+    // Open email client
+    window.location.href = mailtoLink;
+    
     toast({
-      title: "Appointment Request Submitted",
-      description: "We'll contact you shortly to confirm your appointment details.",
+      title: "Email Client Opened",
+      description: "Your default email client has been opened with the appointment details. Please send the email to complete your booking request.",
     });
   };
 
