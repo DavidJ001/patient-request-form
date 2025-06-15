@@ -1,13 +1,14 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import PersonalInformation from "./form-sections/PersonalInformation";
 import AppointmentDetails from "./form-sections/AppointmentDetails";
 import PatientInformation from "./form-sections/PatientInformation";
 import AdditionalNotes from "./form-sections/AdditionalNotes";
 import ConsentSection from "./form-sections/ConsentSection";
+import ClinicMenu from "./ClinicMenu";
 import { FormData } from "@/types/appointment";
 
 const AppointmentForm = () => {
@@ -40,50 +41,13 @@ const AppointmentForm = () => {
     agreeToTerms: false
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const updateFormData = (updates: Partial<FormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
-  const formatEmailBody = (data: FormData): string => {
-    const formatDate = (date: Date | undefined) => {
-      return date ? date.toLocaleDateString() : 'Not specified';
-    };
-
-    let emailBody = `APPOINTMENT BOOKING REQUEST\n\n`;
-    
-    emailBody += `PERSONAL INFORMATION:\n`;
-    emailBody += `Full Name: ${data.fullName}\n`;
-    emailBody += `Date of Birth: ${formatDate(data.dateOfBirth)}\n`;
-    emailBody += `Gender: ${data.gender}\n`;
-    emailBody += `Phone Number: ${data.phoneNumber}\n`;
-    emailBody += `Email Address: ${data.emailAddress}\n\n`;
-    
-    emailBody += `APPOINTMENT DETAILS:\n`;
-    emailBody += `Service: ${data.service}\n`;
-    emailBody += `Preferred Date: ${formatDate(data.preferredDate)}\n`;
-    emailBody += `Preferred Time: ${data.preferredTime}\n`;
-    emailBody += `Preferred Doctor: ${data.preferredDoctor || 'No preference'}\n\n`;
-    
-    emailBody += `PATIENT INFORMATION:\n`;
-    emailBody += `Appointment for self: ${data.isForSelf ? 'Yes' : 'No'}\n`;
-    if (!data.isForSelf) {
-      emailBody += `Patient Name: ${data.patientName}\n`;
-      emailBody += `Patient Age: ${data.patientAge}\n`;
-      emailBody += `Relationship to Patient: ${data.relationshipToPatient}\n`;
-    }
-    emailBody += `\n`;
-    
-    emailBody += `ADDITIONAL INFORMATION:\n`;
-    emailBody += `Reason for Visit: ${data.reasonForVisit || 'Not specified'}\n`;
-    emailBody += `Has Referral: ${data.hasReferral ? 'Yes' : 'No'}\n`;
-    if (data.hasReferral && data.referralDocument) {
-      emailBody += `Referral Document: ${data.referralDocument.name}\n`;
-    }
-    
-    return emailBody;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -108,51 +72,92 @@ const AppointmentForm = () => {
       return;
     }
 
-    console.log("Form submitted with data:", formData);
-    
-    // Create email with form data
-    const emailSubject = `Appointment Booking Request - ${formData.fullName}`;
-    const emailBody = formatEmailBody(formData);
-    const emailTo = 'appointments@premierfamilyclinics.co.ke';
-    
-    // Create mailto link
-    const mailtoLink = `mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-    
-    // Open email client
-    window.location.href = mailtoLink;
-    
-    toast({
-      title: "Email Client Opened",
-      description: "Your default email client has been opened with the appointment details. Please send the email to complete your booking request.",
-    });
+    setIsSubmitting(true);
+
+    try {
+      console.log("Submitting form with data:", formData);
+      
+      // Call the Supabase Edge Function to send email
+      const { data, error } = await supabase.functions.invoke('send-appointment-email', {
+        body: { formData }
+      });
+
+      if (error) {
+        console.error("Error sending appointment email:", error);
+        throw error;
+      }
+
+      console.log("Email sent successfully:", data);
+      
+      toast({
+        title: "Appointment Request Sent!",
+        description: "Your appointment request has been sent to Premier Family Clinics. We will contact you soon to confirm your appointment.",
+      });
+
+      // Reset form after successful submission
+      setFormData({
+        fullName: "",
+        dateOfBirth: undefined,
+        gender: "",
+        phoneNumber: "",
+        emailAddress: "",
+        service: "",
+        preferredDate: undefined,
+        preferredTime: "",
+        preferredDoctor: "",
+        isForSelf: true,
+        patientName: "",
+        patientAge: "",
+        relationshipToPatient: "",
+        reasonForVisit: "",
+        hasReferral: false,
+        referralDocument: null,
+        agreeToTerms: false
+      });
+
+    } catch (error: any) {
+      console.error("Error submitting appointment:", error);
+      toast({
+        title: "Error Sending Request",
+        description: "There was an error sending your appointment request. Please try again or contact us directly.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-      <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
-        <CardTitle className="text-2xl font-semibold text-center">
-          Appointment Booking Form
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <PersonalInformation formData={formData} updateFormData={updateFormData} />
-          <AppointmentDetails formData={formData} updateFormData={updateFormData} />
-          <PatientInformation formData={formData} updateFormData={updateFormData} />
-          <AdditionalNotes formData={formData} updateFormData={updateFormData} />
-          <ConsentSection formData={formData} updateFormData={updateFormData} />
-          
-          <div className="pt-6 border-t">
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white py-3 text-lg font-semibold rounded-lg transition-all duration-200 transform hover:scale-105"
-            >
-              Submit Appointment Request
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+    <div>
+      <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
+          <CardTitle className="text-2xl font-semibold text-center">
+            Appointment Booking Form
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <PersonalInformation formData={formData} updateFormData={updateFormData} />
+            <AppointmentDetails formData={formData} updateFormData={updateFormData} />
+            <PatientInformation formData={formData} updateFormData={updateFormData} />
+            <AdditionalNotes formData={formData} updateFormData={updateFormData} />
+            <ConsentSection formData={formData} updateFormData={updateFormData} />
+            
+            <div className="pt-6 border-t">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white py-3 text-lg font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
+              >
+                {isSubmitting ? "Sending Request..." : "Submit Appointment Request"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <ClinicMenu />
+    </div>
   );
 };
 
