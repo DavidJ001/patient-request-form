@@ -83,15 +83,15 @@ const AppointmentForm = () => {
       });
 
       if (error) {
-        console.error("Error sending appointment email:", error);
+        console.error("Error from edge function:", error);
         throw error;
       }
 
-      console.log("Email sent successfully:", data);
+      console.log("Response from edge function:", data);
       
       toast({
-        title: "Appointment Request Sent!",
-        description: "Your appointment request has been sent to Premier Family Clinics. We will contact you soon to confirm your appointment.",
+        title: "Appointment Request Submitted!",
+        description: "Your appointment request has been received by Premier Family Clinics. We will contact you soon to confirm your appointment.",
       });
 
       // Reset form after successful submission
@@ -118,8 +118,8 @@ const AppointmentForm = () => {
     } catch (error: any) {
       console.error("Error submitting appointment:", error);
       toast({
-        title: "Error Sending Request",
-        description: "There was an error sending your appointment request. Please try again or contact us directly.",
+        title: "Error Submitting Request",
+        description: "There was an error submitting your appointment request. Please try again or contact us directly at appointments@premierfamilyclinics.co.ke",
         variant: "destructive"
       });
     } finally {

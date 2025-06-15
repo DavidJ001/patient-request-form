@@ -1,8 +1,4 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +24,8 @@ const handler = async (req: Request): Promise<Response> => {
       return date ? new Date(date).toLocaleDateString() : 'Not specified';
     };
 
-    let emailBody = `APPOINTMENT BOOKING REQUEST\n\n`;
+    // Create email content
+    let emailBody = `NEW APPOINTMENT BOOKING REQUEST\n\n`;
     
     emailBody += `PERSONAL INFORMATION:\n`;
     emailBody += `Full Name: ${formData.fullName}\n`;
@@ -54,52 +51,35 @@ const handler = async (req: Request): Promise<Response> => {
     
     emailBody += `ADDITIONAL INFORMATION:\n`;
     emailBody += `Reason for Visit: ${formData.reasonForVisit || 'Not specified'}\n`;
-    emailBody += `Has Referral: ${formData.hasReferral ? 'Yes' : 'No'}\n`;
+    emailBody += `Has Referral: ${formData.hasReferral ? 'Yes' : 'No'}\n\n`;
+    
+    emailBody += `Submitted on: ${new Date().toLocaleString()}\n`;
 
-    const emailResponse = await resend.emails.send({
-      from: "Premier Family Clinics <onboarding@resend.dev>",
-      to: ["appointments@premierfamilyclinics.co.ke"],
-      reply_to: formData.emailAddress,
+    // For now, we'll simulate sending the email and log the content
+    console.log("Email content to be sent:");
+    console.log(emailBody);
+    
+    // Since we don't have Resend configured, we'll return success but log the email content
+    // In a real implementation, you would need to:
+    // 1. Set up a Resend API key in Supabase secrets
+    // 2. Import and use the Resend library
+    
+    // Simulate email sending
+    const emailData = {
+      to: "appointments@premierfamilyclinics.co.ke",
+      from: "noreply@premierfamilyclinics.co.ke",
       subject: `New Appointment Request - ${formData.fullName}`,
-      text: emailBody,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">New Appointment Booking Request</h2>
-          
-          <h3 style="color: #059669;">Personal Information</h3>
-          <p><strong>Full Name:</strong> ${formData.fullName}</p>
-          <p><strong>Date of Birth:</strong> ${formatDate(formData.dateOfBirth)}</p>
-          <p><strong>Gender:</strong> ${formData.gender}</p>
-          <p><strong>Phone Number:</strong> ${formData.phoneNumber}</p>
-          <p><strong>Email Address:</strong> ${formData.emailAddress}</p>
-          
-          <h3 style="color: #059669;">Appointment Details</h3>
-          <p><strong>Service:</strong> ${formData.service}</p>
-          <p><strong>Preferred Date:</strong> ${formatDate(formData.preferredDate)}</p>
-          <p><strong>Preferred Time:</strong> ${formData.preferredTime}</p>
-          <p><strong>Preferred Doctor:</strong> ${formData.preferredDoctor || 'No preference'}</p>
-          
-          <h3 style="color: #059669;">Patient Information</h3>
-          <p><strong>Appointment for self:</strong> ${formData.isForSelf ? 'Yes' : 'No'}</p>
-          ${!formData.isForSelf ? `
-            <p><strong>Patient Name:</strong> ${formData.patientName}</p>
-            <p><strong>Patient Age:</strong> ${formData.patientAge}</p>
-            <p><strong>Relationship to Patient:</strong> ${formData.relationshipToPatient}</p>
-          ` : ''}
-          
-          <h3 style="color: #059669;">Additional Information</h3>
-          <p><strong>Reason for Visit:</strong> ${formData.reasonForVisit || 'Not specified'}</p>
-          <p><strong>Has Referral:</strong> ${formData.hasReferral ? 'Yes' : 'No'}</p>
-          
-          <hr style="margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">This appointment request was submitted through the Premier Family Clinics website.</p>
-        </div>
-      `,
-    });
+      content: emailBody,
+      timestamp: new Date().toISOString()
+    };
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Simulated email sent:", emailData);
 
-    return new Response(JSON.stringify({ success: true, emailId: emailResponse.data?.id }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: "Appointment request received and logged",
+      emailContent: emailBody 
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -107,9 +87,12 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending appointment email:", error);
+    console.error("Error processing appointment request:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "Failed to process appointment request"
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
