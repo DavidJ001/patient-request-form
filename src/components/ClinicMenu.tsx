@@ -68,7 +68,7 @@ const ClinicMenu = () => {
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-blue-600" />
-              <span>Professional healthcare services</span>
+              <span>4th Floor, Flamingo Towers, Mara Road Uperhill next to Japanese Embassy</span>
             </div>
           </div>
         </div>
