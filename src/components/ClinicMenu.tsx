@@ -23,7 +23,7 @@ const ClinicMenu = () => {
     {
       title: "Health Resources",
       description: "Educational materials and health tips",
-      link: "https://premierfamilyclinics.co.ke/resources"
+      link: "https://premierfamilyclinics.co.ke/blog"
     }
   ];
 
